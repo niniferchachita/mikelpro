@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Control Mikel - Gestión de Inventario</title>
   
   <!-- Tailwind CSS -->
@@ -16,27 +16,35 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@500;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
     .font-impact { font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; }
-    .hide-scrollbar::-webkit-scrollbar { display: none; }
-    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-[#f5f6f8] text-slate-800 h-screen flex overflow-hidden">
+<body class="bg-[#f5f6f8] text-slate-800 h-screen flex flex-col md:flex-row overflow-hidden">
 
   <!-- URL DE LA API EN CLOUDFLARE WORKERS -->
   <script>
     const API_URL = "https://control-mikel-api.niniferchachita1999.workers.dev";
   </script>
 
+  <!-- BARRA SUPERIOR PARA MÓVILES (HAMBURGUESA) -->
+  <header class="md:hidden bg-[#e9ecef] border-b border-slate-300 p-4 flex items-center justify-between shrink-0 z-20">
+    <h1 class="text-xl font-bold font-impact text-slate-900 flex items-center gap-2">
+      <i class="fa-solid fa-gear"></i> CONTROL MIKEL
+    </h1>
+    <button onclick="toggleMobileMenu()" class="p-2 text-slate-700 hover:text-slate-900 focus:outline-none text-xl">
+      <i class="fa-solid fa-bars" id="icon-menu-hamburger"></i>
+    </button>
+  </header>
+
   <!-- BARRA LATERAL DE NAVEGACIÓN -->
-  <aside class="w-64 bg-[#e9ecef] border-r border-slate-300 flex flex-col justify-between shrink-0 shadow-sm">
+  <aside id="sidebar" class="fixed md:relative inset-y-0 left-0 w-64 bg-[#e9ecef] border-r border-slate-300 flex flex-col justify-between shrink-0 shadow-lg md:shadow-sm transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out z-30">
     <div>
-      <div class="p-6 pb-8 border-b border-slate-300/60">
+      <div class="p-6 pb-6 border-b border-slate-300/60 hidden md:block">
         <h1 class="text-2xl font-bold font-impact text-slate-900 tracking-wider flex items-center gap-2">
           <i class="fa-solid fa-gear text-slate-800"></i> CONTROL MIKEL
         </h1>
       </div>
 
-      <nav class="p-3 space-y-1.5 font-semibold text-sm">
+      <nav class="p-3 space-y-1 font-semibold text-sm mt-12 md:mt-0">
         <button id="nav-ver" onclick="cambiarPestana('ver')" class="w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-colors text-slate-700 hover:bg-slate-300/50">
           <i class="fa-solid fa-box text-base w-5"></i> STOCK DISPONIBLE
         </button>
@@ -59,117 +67,120 @@
     </div>
 
     <div class="p-4 text-xs text-slate-500 border-t border-slate-300/60 flex items-center justify-between">
-      <span>Conectado a Cloudflare</span>
-      <span id="indicador-status" class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" title="Conexión activa"></span>
+      <span>Cloudflare Active</span>
+      <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
     </div>
   </aside>
 
+  <!-- OVERLAY PARA MÓVILES AL ABRIR EL MENÚ -->
+  <div id="mobile-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-slate-900/50 hidden z-20 md:hidden"></div>
+
   <!-- CONTENIDO PRINCIPAL -->
-  <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
+  <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
     <div class="max-w-7xl mx-auto">
 
       <!-- PESTAÑA 1: STOCK DISPONIBLE -->
-      <section id="pestana-ver" class="pestana bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <h2 class="text-2xl font-bold font-impact text-slate-900 mb-6 flex items-center gap-2">
+      <section id="pestana-ver" class="pestana bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+        <h2 class="text-xl md:text-2xl font-bold font-impact text-slate-900 mb-4 md:mb-6 flex items-center gap-2">
           <i class="fa-solid fa-boxes-stacked text-red-700"></i> COMPONENTES Y MATERIALES EN STOCK
         </h2>
         
-        <div class="mb-6">
-          <div class="relative max-w-xl">
+        <div class="mb-4 md:mb-6">
+          <div class="relative w-full md:max-w-xl">
             <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
-            <input type="text" id="ent-buscar" onkeyup="renderTablaStock()" placeholder="Filtrar inmediatamente por Código SKU o Nombre de Pieza..." class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 text-sm">
+            <input type="text" id="ent-buscar" onkeyup="renderTablaStock()" placeholder="Filtrar por SKU o Nombre..." class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 text-sm">
           </div>
         </div>
 
-        <div class="overflow-x-auto rounded-xl border border-slate-200 mb-6">
-          <table class="w-full text-left border-collapse text-sm">
+        <div class="overflow-x-auto rounded-xl border border-slate-200 mb-4 md:mb-6">
+          <table class="w-full text-left border-collapse text-xs md:text-sm min-w-[500px]">
             <thead>
               <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                <th class="p-3.5 text-center w-36">CÓDIGO SKU</th>
-                <th class="p-3.5">DESCRIPCIÓN TÉCNICA</th>
-                <th class="p-3.5 text-center w-36">STOCK</th>
-                <th class="p-3.5">PROVEEDOR ASIGNADO</th>
+                <th class="p-3 text-center w-28 md:w-36">CÓDIGO SKU</th>
+                <th class="p-3">DESCRIPCIÓN TÉCNICA</th>
+                <th class="p-3 text-center w-28 md:w-36">STOCK</th>
+                <th class="p-3">PROVEEDOR</th>
               </tr>
             </thead>
             <tbody id="tabla-stock-body" class="divide-y divide-slate-200"></tbody>
           </table>
         </div>
 
-        <div class="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
-          <p class="text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
-            ⚠️ FILAS ROJAS CON INDICADOR CRÍTICO: MENOS DE 5 UNIDADES EN EXISTENCIA
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-2">
+          <p class="text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-lg text-center lg:text-left">
+            ⚠️ FILAS ROJAS: MENOS DE 5 UNIDADES
           </p>
-          <div class="flex gap-3">
-            <button onclick="eliminarArticuloSeleccionado()" class="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 font-semibold rounded-xl text-sm transition-colors flex items-center gap-2">
+          <div class="flex flex-col sm:flex-row gap-2">
+            <button onclick="eliminarArticuloSeleccionado()" class="w-full sm:w-auto px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 font-semibold rounded-xl text-xs md:text-sm transition-colors flex items-center justify-center gap-2">
               <i class="fa-solid fa-trash-can"></i> ELIMINAR ARTÍCULO
             </button>
-            <button onclick="exportarExcelCriticos()" class="px-4 py-2.5 bg-red-700 hover:bg-red-800 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm flex items-center gap-2">
-              <i class="fa-solid fa-file-excel"></i> DESCARGAR LISTA DE PEDIDOS (.XLSX)
+            <button onclick="exportarExcelCriticos()" class="w-full sm:w-auto px-4 py-2.5 bg-red-700 hover:bg-red-800 text-white font-semibold rounded-xl text-xs md:text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
+              <i class="fa-solid fa-file-excel"></i> DESCARGAR PEDIDOS (.XLSX)
             </button>
           </div>
         </div>
       </section>
 
       <!-- PESTAÑA 2: REGISTRAR INGRESO -->
-      <section id="pestana-ingreso" class="pestana hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <h2 class="text-2xl font-bold font-impact text-emerald-800 mb-6 flex items-center gap-2">
-          <i class="fa-solid fa-circle-arrow-down"></i> ENTRADA Y ABASTECIMIENTO DE MERCANCÍA
+      <section id="pestana-ingreso" class="pestana hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+        <h2 class="text-xl md:text-2xl font-bold font-impact text-emerald-800 mb-4 md:mb-6 flex items-center gap-2">
+          <i class="fa-solid fa-circle-arrow-down"></i> ENTRADA DE MERCANCÍA
         </h2>
 
-        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 md:p-5 mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           <div>
-            <h3 class="font-bold text-emerald-900 text-sm">CARGA DE REQUISICIÓN MASIVA VIA EXCEL</h3>
-            <p class="text-xs text-slate-600 mt-1">Columnas obligatorias requeridas en el archivo: 'codigo' y 'cantidad'</p>
+            <h3 class="font-bold text-emerald-900 text-sm">CARGA MASIVA VIA EXCEL</h3>
+            <p class="text-xs text-slate-600 mt-0.5">Columnas: 'codigo' y 'cantidad'</p>
           </div>
-          <label class="cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm flex items-center gap-2">
-            <i class="fa-solid fa-file-csv"></i> SUBIR PLANILLA EXCEL (.XLSX)
+          <label class="cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4 py-2.5 rounded-xl text-xs md:text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
+            <i class="fa-solid fa-file-csv"></i> SUBIR EXCEL
             <input type="file" id="file-ingreso-masivo" accept=".xlsx, .xls, .csv" onchange="cargarIngresoMasivo(event)" class="hidden">
           </label>
         </div>
 
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-4 max-w-2xl mx-auto">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Buscar Producto</label>
-            <input type="text" id="ent-ingreso-buscar" onkeyup="detectarProductoIngreso()" placeholder="Escribe código o nombre para cargar un repuesto individual..." class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600">
+            <input type="text" id="ent-ingreso-buscar" onkeyup="detectarProductoIngreso()" placeholder="Escribe código o nombre..." class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600">
           </div>
 
           <div id="lbl-ingreso-asoma" class="text-xs font-bold text-amber-600 text-center py-1">
             🔍 Esperando detección de material...
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Código SKU Detectado</label>
-              <input type="text" id="ent-ingreso-cod" readonly placeholder="Código SKU Detectado" class="w-full px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-xl text-sm font-semibold text-slate-500">
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Código SKU</label>
+              <input type="text" id="ent-ingreso-cod" readonly placeholder="Código SKU" class="w-full px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-xl text-sm font-semibold text-slate-500">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Cantidad de Entrada</label>
-              <input type="number" id="ent-ingreso-cant" min="1" placeholder="Cantidad Física de Entrada" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600">
+              <input type="number" id="ent-ingreso-cant" min="1" placeholder="Cantidad de Entrada" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600">
             </div>
           </div>
 
-          <button onclick="ejecutarIngreso()" class="w-full mt-4 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
-            <i class="fa-solid fa-check"></i> ASENTAR MOVIMIENTO DE ENTRADA
+          <button onclick="ejecutarIngreso()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
+            <i class="fa-solid fa-check"></i> ASENTAR ENTRADA
           </button>
         </div>
       </section>
 
       <!-- PESTAÑA 3: REGISTRAR SALIDA -->
-      <section id="pestana-salida" class="pestana hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <h2 class="text-2xl font-bold font-impact text-orange-600 mb-6 flex items-center gap-2">
-          <i class="fa-solid fa-circle-arrow-up"></i> DESPACHO Y ASIGNACIÓN DE MATERIALES
+      <section id="pestana-salida" class="pestana hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+        <h2 class="text-xl md:text-2xl font-bold font-impact text-orange-600 mb-4 md:mb-6 flex items-center gap-2">
+          <i class="fa-solid fa-circle-arrow-up"></i> DESPACHO DE MATERIALES
         </h2>
 
-        <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
-          <input type="text" id="ent-salida-buscar" onkeyup="detectarProductoSalida()" placeholder="Escriba código o descripción de la pieza..." class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+        <div class="bg-orange-50 border border-orange-200 rounded-xl p-3 md:p-4 mb-4">
+          <input type="text" id="ent-salida-buscar" onkeyup="detectarProductoSalida()" placeholder="Escriba código o descripción..." class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
         </div>
 
-        <div id="lbl-salida-asoma" class="text-xs font-bold text-amber-600 text-center mb-6">
+        <div id="lbl-salida-asoma" class="text-xs font-bold text-amber-600 text-center mb-4">
           🔍 Esperando orden de salida...
         </div>
 
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-4 max-w-2xl mx-auto">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Código SKU</label>
               <input type="text" id="ent-salida-cod" readonly placeholder="Código SKU" class="w-full px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-xl text-sm font-semibold text-slate-500">
@@ -181,64 +192,58 @@
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Asignar opcionalmente a Placa Flota</label>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Asignar a Vehículo Flota</label>
             <select id="combo-salida-vehiculo" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
               <option value="Ninguno (Salida General Taller)">Ninguno (Salida General Taller)</option>
             </select>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Detalles o descripción del trabajo / Destino libre</label>
-            <input type="text" id="ent-salida-destino" placeholder="Detalles del trabajo realizado..." class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Detalles o Trabajo Realizado</label>
+            <input type="text" id="ent-salida-destino" placeholder="Detalles del trabajo..." class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
           </div>
 
-          <button onclick="ejecutarSalida()" class="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
-            <i class="fa-solid fa-paper-plane"></i> AUTORIZAR RETIRO DE ALMACÉN
+          <button onclick="ejecutarSalida()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
+            <i class="fa-solid fa-paper-plane"></i> AUTORIZAR RETIRO
           </button>
         </div>
       </section>
 
       <!-- PESTAÑA 4: VEHÍCULOS PROPIOS -->
-      <section id="pestana-vehiculos" class="pestana hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <h2 class="text-2xl font-bold font-impact text-sky-700 mb-6 flex items-center gap-2">
-          <i class="fa-solid fa-truck-front"></i> REGISTRO DE FLOTA / VEHÍCULOS INTERNOS
+      <section id="pestana-vehiculos" class="pestana hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+        <h2 class="text-xl md:text-2xl font-bold font-impact text-sky-700 mb-4 md:mb-6 flex items-center gap-2">
+          <i class="fa-solid fa-truck-front"></i> VEHÍCULOS PROPIOS Y FLOTA
         </h2>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4 h-fit">
-            <h3 class="font-bold text-sky-700 text-sm border-b border-slate-200 pb-2">AÑADIR UNIDAD A LA LISTA</h3>
-            <div>
-              <input type="text" id="ent-veh-placa" placeholder="Número de Placa (Ej: GBA-8902)" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-600">
-            </div>
-            <div>
-              <input type="text" id="ent-veh-modelo" placeholder="Marca y Modelo (Ej: Toyota Hilux)" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-600">
-            </div>
-            <div>
-              <input type="text" id="ent-veh-anio" placeholder="Año del Vehículo" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-600">
-            </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5 space-y-3 h-fit">
+            <h3 class="font-bold text-sky-700 text-sm border-b border-slate-200 pb-2">AÑADIR UNIDAD</h3>
+            <input type="text" id="ent-veh-placa" placeholder="Placa (Ej: GBA-8902)" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-600">
+            <input type="text" id="ent-veh-modelo" placeholder="Marca / Modelo" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-600">
+            <input type="text" id="ent-veh-anio" placeholder="Año" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-600">
 
-            <button onclick="ejecutarAltaVehiculo()" class="w-full bg-sky-700 hover:bg-sky-800 text-white font-bold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
-              <i class="fa-solid fa-plus"></i> DAR DE ALTA VEHÍCULO
+            <button onclick="ejecutarAltaVehiculo()" class="w-full bg-sky-700 hover:bg-sky-800 text-white font-bold py-2.5 rounded-lg text-xs md:text-sm transition-colors flex items-center justify-center gap-2">
+              <i class="fa-solid fa-plus"></i> DAR DE ALTA
             </button>
-            <button onclick="generarReporteGastosVehiculo()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
-              <i class="fa-solid fa-chart-pie"></i> REPORTE DE GASTOS MENSUAL
+            <button onclick="generarReporteGastosVehiculo()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2.5 rounded-lg text-xs md:text-sm transition-colors flex items-center justify-center gap-2">
+              <i class="fa-solid fa-chart-pie"></i> REPORTE GASTOS
             </button>
-            <button onclick="eliminarVehiculo()" class="w-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
-              <i class="fa-solid fa-trash"></i> ELIMINAR VEHÍCULO
+            <button onclick="eliminarVehiculo()" class="w-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold py-2.5 rounded-lg text-xs md:text-sm transition-colors flex items-center justify-center gap-2">
+              <i class="fa-solid fa-trash"></i> ELIMINAR
             </button>
           </div>
 
-          <div class="lg:col-span-2 space-y-3">
+          <div class="lg:col-span-2 space-y-2">
             <p class="text-xs font-bold text-sky-700">
-              💡 CONSEJO INDUSTRIAL: DAR DOBLE CLIC SOBRE CUALQUIER FILA PARA VER SUS COMPONENTES
+              💡 TOQUE DOS VECES UNA FILA PARA VER CONSUMOS
             </p>
             <div class="overflow-x-auto rounded-xl border border-slate-200">
-              <table class="w-full text-left border-collapse text-sm">
+              <table class="w-full text-left border-collapse text-xs md:text-sm min-w-[350px]">
                 <thead>
                   <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                    <th class="p-3.5 text-center w-40">PLACA</th>
-                    <th class="p-3.5">DESCRIPCIÓN / MODELO</th>
-                    <th class="p-3.5 text-center w-28">AÑO</th>
+                    <th class="p-3 text-center w-32">PLACA</th>
+                    <th class="p-3">DESCRIPCIÓN / MODELO</th>
+                    <th class="p-3 text-center w-24">AÑO</th>
                   </tr>
                 </thead>
                 <tbody id="tabla-vehiculos-body" class="divide-y divide-slate-200"></tbody>
@@ -249,30 +254,30 @@
       </section>
 
       <!-- PESTAÑA 5: AÑADIR AL CATÁLOGO -->
-      <section id="pestana-nuevo" class="pestana hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <h2 class="text-2xl font-bold font-impact text-purple-800 mb-6 flex items-center gap-2">
-          <i class="fa-solid fa-folder-plus"></i> NUEVO REGISTRO EN CATÁLOGO GENERAL
+      <section id="pestana-nuevo" class="pestana hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+        <h2 class="text-xl md:text-2xl font-bold font-impact text-purple-800 mb-4 md:mb-6 flex items-center gap-2">
+          <i class="fa-solid fa-folder-plus"></i> REGISTRAR EN CATÁLOGO GENERAL
         </h2>
 
-        <div class="bg-purple-50 border border-purple-200 rounded-xl p-5 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 md:p-5 mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           <div>
-            <h3 class="font-bold text-purple-900 text-sm">REGISTRO EN MASA (Excel / CSV)</h3>
-            <p class="text-xs text-slate-600 mt-1">Columnas obligatorias: 'codigo', 'nombre', 'cantidad' y 'proveedor' (opcional)</p>
+            <h3 class="font-bold text-purple-900 text-sm">REGISTRO MASIVO MAESTRO</h3>
+            <p class="text-xs text-slate-600 mt-0.5">Columnas: 'codigo', 'nombre', 'cantidad'</p>
           </div>
-          <label class="cursor-pointer bg-purple-700 hover:bg-purple-800 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm flex items-center gap-2">
+          <label class="cursor-pointer bg-purple-700 hover:bg-purple-800 text-white font-semibold px-4 py-2.5 rounded-xl text-xs md:text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
             <i class="fa-solid fa-file-excel"></i> SUBIR PLANILLA MAESTRO
             <input type="file" id="file-catalogo-masivo" accept=".xlsx, .xls, .csv" onchange="cargarCatalogoMasivo(event)" class="hidden">
           </label>
         </div>
 
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-4 max-w-xl mx-auto">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-6 space-y-4 max-w-xl mx-auto">
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Código SKU Único</label>
-            <input type="text" id="ent-nuevo-cod" placeholder="Código SKU Único de Fábrica" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Código SKU</label>
+            <input type="text" id="ent-nuevo-cod" placeholder="Código SKU Único" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Descripción Técnica</label>
-            <input type="text" id="ent-nuevo-nom" placeholder="Descripción Técnica del Repuesto" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600">
+            <input type="text" id="ent-nuevo-nom" placeholder="Descripción del Repuesto" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Stock Inicial</label>
@@ -280,45 +285,45 @@
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Proveedor</label>
-            <input type="text" id="ent-nuevo-prov" placeholder="Nombre Comercial del Proveedor" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600">
+            <input type="text" id="ent-nuevo-prov" placeholder="Nombre Comercial Proveedor" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600">
           </div>
 
-          <button onclick="ejecutarNuevo()" class="w-full mt-2 bg-slate-700 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
-            <i class="fa-solid fa-floppy-disk"></i> REGISTRAR NUEVO COMPONENTE
+          <button onclick="ejecutarNuevo()" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> REGISTRAR COMPONENTE
           </button>
         </div>
       </section>
 
       <!-- PESTAÑA 6: BITÁCORA Y REPORTES -->
-      <section id="pestana-historial" class="pestana hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <h2 class="text-2xl font-bold font-impact text-amber-700 mb-6 flex items-center gap-2">
-          <i class="fa-solid fa-list-check"></i> AUDITORÍA Y REGISTRO DE SALIDAS
+      <section id="pestana-historial" class="pestana hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6">
+        <h2 class="text-xl md:text-2xl font-bold font-impact text-amber-700 mb-4 md:mb-6 flex items-center gap-2">
+          <i class="fa-solid fa-list-check"></i> BITÁCORA Y REGISTRO DE SALIDAS
         </h2>
 
-        <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-          <div class="flex items-center gap-3 w-full md:w-auto">
+        <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-4 md:mb-6">
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
             <input type="date" id="ent-fecha-desde" class="px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm">
-            <span class="text-slate-400 font-bold">-</span>
+            <span class="text-slate-400 font-bold text-center hidden sm:block">-</span>
             <input type="date" id="ent-fecha-hasta" class="px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm">
-            <button onclick="renderTablaHistorial()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+            <button onclick="renderTablaHistorial()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-colors">
               🔍 FILTRAR
             </button>
           </div>
 
-          <button onclick="exportarExcelFechas()" class="w-full md:w-auto bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
-            <i class="fa-solid fa-file-excel"></i> EXPORTAR REPORTE EXCEL (.XLSX)
+          <button onclick="exportarExcelFechas()" class="w-full md:w-auto bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-4 py-2.5 rounded-xl text-xs md:text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
+            <i class="fa-solid fa-file-excel"></i> EXPORTAR REPORTE (.XLSX)
           </button>
         </div>
 
         <div class="overflow-x-auto rounded-xl border border-slate-200">
-          <table class="w-full text-left border-collapse text-sm">
+          <table class="w-full text-left border-collapse text-xs md:text-sm min-w-[600px]">
             <thead>
               <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                <th class="p-3.5 text-center w-28">CÓDIGO</th>
-                <th class="p-3.5 text-center w-32">FECHA</th>
-                <th class="p-3.5">PIEZA DESPACHADA</th>
-                <th class="p-3.5 text-center w-24">CANT.</th>
-                <th class="p-3.5">ASIGNADO A / ORDEN DE TRABAJO</th>
+                <th class="p-3 text-center w-24">SKU</th>
+                <th class="p-3 text-center w-28">FECHA</th>
+                <th class="p-3">PIEZA DESPACHADA</th>
+                <th class="p-3 text-center w-20">CANT.</th>
+                <th class="p-3">ASIGNADO A / ORDEN DE TRABAJO</th>
               </tr>
             </thead>
             <tbody id="tabla-historial-body" class="divide-y divide-slate-200"></tbody>
@@ -329,23 +334,23 @@
     </div>
   </main>
 
-  <!-- MODAL HISTORIAL VEHÍCULO -->
-  <div id="modal-vehiculo" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-2xl w-full p-6 space-y-4">
+  <!-- MODAL HISTORIAL VEHÍCULO (AJUSTADO A MÓVIL) -->
+  <div id="modal-vehiculo" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-3 z-50">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-2xl w-full p-4 md:p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-        <h3 id="modal-vehiculo-titulo" class="text-lg font-bold font-impact text-sky-700"></h3>
+        <h3 id="modal-vehiculo-titulo" class="text-base md:text-lg font-bold font-impact text-sky-700"></h3>
         <button onclick="cerrarModalVehiculo()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div class="overflow-y-auto max-h-80 rounded-xl border border-slate-200">
-        <table class="w-full text-left border-collapse text-xs">
+      <div class="overflow-x-auto max-h-80 rounded-xl border border-slate-200">
+        <table class="w-full text-left border-collapse text-xs min-w-[450px]">
           <thead>
             <tr class="bg-slate-100 font-bold border-b border-slate-200">
-              <th class="p-2.5 text-center">SKU</th>
-              <th class="p-2.5 text-center">FECHA</th>
-              <th class="p-2.5">MATERIAL</th>
-              <th class="p-2.5 text-center">CANT.</th>
-              <th class="p-2.5">NOTAS</th>
+              <th class="p-2 text-center">SKU</th>
+              <th class="p-2 text-center">FECHA</th>
+              <th class="p-2">MATERIAL</th>
+              <th class="p-2 text-center">CANT.</th>
+              <th class="p-2">NOTAS</th>
             </tr>
           </thead>
           <tbody id="modal-vehiculo-body" class="divide-y divide-slate-200"></tbody>
@@ -358,14 +363,28 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT: LÓGICA CONECTADA A CLOUDFLARE D1 WORKERS -->
+  <!-- JAVASCRIPT CONNECTED TO CLOUDFLARE -->
   <script>
     let inventario = [];
     let vehiculos_db = [];
     let historial_salidas = [];
     let vehiculoSeleccionadoPlaca = null;
 
-    // CARGAR DATOS DESDE CLOUDFLARE D1
+    // HAMBURGER MENU TOGGLE FOR MOBILE
+    function toggleMobileMenu() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('mobile-overlay');
+      const isClosed = sidebar.classList.contains('-translate-x-full');
+
+      if (isClosed) {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+      }
+    }
+
     async function cargarDatosCloud() {
       try {
         const [resInv, resVeh, resHist] = await Promise.all([
@@ -386,8 +405,15 @@
       }
     }
 
-    // NAVEGACIÓN
     function cambiarPestana(nombre) {
+      // Auto-close menu on mobile selection
+      if (window.innerWidth < 768) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('mobile-overlay');
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+      }
+
       document.querySelectorAll('.pestana').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('nav button').forEach(btn => {
         btn.classList.remove('bg-red-700', 'bg-emerald-700', 'bg-orange-600', 'bg-sky-700', 'bg-slate-700', 'bg-amber-500', 'text-white', 'text-slate-900');
@@ -420,7 +446,6 @@
       }
     }
 
-    // STOCK
     function renderTablaStock() {
       const busqueda = document.getElementById('ent-buscar').value.toLowerCase().trim();
       const tbody = document.getElementById('tabla-stock-body');
@@ -436,10 +461,10 @@
           tr.className = `cursor-pointer transition-colors ${esCritico ? 'bg-red-50 hover:bg-red-100 text-red-900' : 'hover:bg-slate-50'}`;
 
           tr.innerHTML = `
-            <td class="p-3.5 text-center font-bold">${item.sku}</td>
-            <td class="p-3.5 font-medium">${item.nombre}</td>
-            <td class="p-3.5 text-center font-bold">${item.cantidad} UDS ${esCritico ? '⚠️' : ''}</td>
-            <td class="p-3.5 text-slate-600">${item.proveedor}</td>
+            <td class="p-3 text-center font-bold">${item.sku}</td>
+            <td class="p-3 font-medium">${item.nombre}</td>
+            <td class="p-3 text-center font-bold">${item.cantidad} UDS ${esCritico ? '⚠️' : ''}</td>
+            <td class="p-3 text-slate-600">${item.proveedor}</td>
           `;
           tbody.appendChild(tr);
         }
@@ -454,8 +479,8 @@
     }
 
     async function eliminarArticuloSeleccionado() {
-      if (!filaSeleccionadaStock) return alert("Por favor, seleccione un artículo de la tabla para eliminarlo.");
-      if (confirm(`¿Está seguro de eliminar permanentemente el SKU: ${filaSeleccionadaStock}?`)) {
+      if (!filaSeleccionadaStock) return alert("Seleccione un artículo de la tabla.");
+      if (confirm(`¿Eliminar SKU: ${filaSeleccionadaStock}?`)) {
         await fetch(`${API_URL}/api/inventario/${filaSeleccionadaStock}`, { method: 'DELETE' });
         await cargarDatosCloud();
         filaSeleccionadaStock = null;
@@ -470,14 +495,13 @@
         Proveedor: i.proveedor
       }));
 
-      if (criticos.length === 0) return alert("No hay piezas con stock crítico menor a 5 unidades.");
+      if (criticos.length === 0) return alert("Sin stock crítico.");
       const ws = XLSX.utils.json_to_sheet(criticos);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Criticos");
       XLSX.writeFile(wb, "Pedidos_Criticos_Mikel.xlsx");
     }
 
-    // INGRESO
     let ingresoCodDetectado = null;
     function detectarProductoIngreso() {
       const texto = document.getElementById('ent-ingreso-buscar').value.toLowerCase().trim();
@@ -489,19 +513,19 @@
       if (item && texto !== "") {
         ingresoCodDetectado = item;
         lbl.className = "text-xs font-bold text-emerald-700 text-center py-1";
-        lbl.textContent = `✅ PIEZA ENCONTRADA: ${item.nombre} [Stock Actual: ${item.cantidad} UDS]`;
+        lbl.textContent = `✅ ENCONTRADO: ${item.nombre} [Stock: ${item.cantidad} UDS]`;
         entCod.value = item.sku;
       } else {
         ingresoCodDetectado = null;
         lbl.className = "text-xs font-bold text-red-600 text-center py-1";
-        lbl.textContent = texto === "" ? "🔍 Esperando detección de material..." : "❌ No se registran repuestos vinculados a ese término";
+        lbl.textContent = texto === "" ? "🔍 Esperando detección..." : "❌ No se registran repuestos";
         entCod.value = "";
       }
     }
 
     async function ejecutarIngreso() {
       const cant = parseInt(document.getElementById('ent-ingreso-cant').value);
-      if (!ingresoCodDetectado || isNaN(cant) || cant <= 0) return alert("Ingrese un material válido y una cantidad mayor a cero.");
+      if (!ingresoCodDetectado || isNaN(cant) || cant <= 0) return alert("Ingrese material y cantidad válidos.");
 
       await fetch(`${API_URL}/api/inventario`, {
         method: 'POST',
@@ -514,7 +538,7 @@
         })
       });
 
-      alert("Entrada asentada en Cloudflare correctamente.");
+      alert("Entrada asentada con éxito.");
       document.getElementById('ent-ingreso-buscar').value = '';
       document.getElementById('ent-ingreso-cant').value = '';
       detectarProductoIngreso();
@@ -550,7 +574,6 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // SALIDA
     let salidaCodDetectado = null;
     function detectarProductoSalida() {
       const texto = document.getElementById('ent-salida-buscar').value.toLowerCase().trim();
@@ -561,13 +584,13 @@
 
       if (item && texto !== "") {
         salidaCodDetectado = item;
-        lbl.className = "text-xs font-bold text-emerald-700 text-center mb-6";
-        lbl.textContent = `✅ CONFIRMADO: ${item.nombre} [Almacén actual: ${item.cantidad} UDS]`;
+        lbl.className = "text-xs font-bold text-emerald-700 text-center mb-4";
+        lbl.textContent = `✅ CONFIRMADO: ${item.nombre} [Almacén: ${item.cantidad} UDS]`;
         entCod.value = item.sku;
       } else {
         salidaCodDetectado = null;
-        lbl.className = "text-xs font-bold text-red-600 text-center mb-6";
-        lbl.textContent = texto === "" ? "🔍 Esperando orden de salida..." : "❌ Elemento no localizado";
+        lbl.className = "text-xs font-bold text-red-600 text-center mb-4";
+        lbl.textContent = texto === "" ? "🔍 Esperando orden..." : "❌ Elemento no localizado";
         entCod.value = "";
       }
     }
@@ -577,8 +600,8 @@
       const destinoText = document.getElementById('ent-salida-destino').value.trim();
       const vehiculo = document.getElementById('combo-salida-vehiculo').value;
 
-      if (!salidaCodDetectado || isNaN(cant) || cant <= 0) return alert("Seleccione un producto y cantidad válida.");
-      if (cant > salidaCodDetectado.cantidad) return alert("Stock insuficiente en almacén.");
+      if (!salidaCodDetectado || isNaN(cant) || cant <= 0) return alert("Seleccione producto y cantidad válidos.");
+      if (cant > salidaCodDetectado.cantidad) return alert("Stock insuficiente.");
 
       let destinoFinal = vehiculo === "Ninguno (Salida General Taller)" 
         ? (destinoText || "Salida General Taller") 
@@ -600,14 +623,14 @@
       });
 
       if (res.ok) {
-        alert("Despacho registrado exitosamente.");
+        alert("Despacho registrado.");
         document.getElementById('ent-salida-buscar').value = '';
         document.getElementById('ent-salida-cant').value = '';
         document.getElementById('ent-salida-destino').value = '';
         detectarProductoSalida();
         await cargarDatosCloud();
       } else {
-        alert("Error al procesar la salida.");
+        alert("Error al procesar salida.");
       }
     }
 
@@ -622,7 +645,6 @@
       });
     }
 
-    // VEHÍCULOS
     function renderTablaVehiculos() {
       const tbody = document.getElementById('tabla-vehiculos-body');
       tbody.innerHTML = '';
@@ -637,9 +659,9 @@
         };
 
         tr.innerHTML = `
-          <td class="p-3.5 text-center font-bold text-sky-800">${v.placa}</td>
-          <td class="p-3.5 font-medium">${v.modelo}</td>
-          <td class="p-3.5 text-center text-slate-600">${v.anio}</td>
+          <td class="p-3 text-center font-bold text-sky-800">${v.placa}</td>
+          <td class="p-3 font-medium">${v.modelo}</td>
+          <td class="p-3 text-center text-slate-600">${v.anio}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -665,8 +687,8 @@
     }
 
     async function eliminarVehiculo() {
-      if (!vehiculoSeleccionadoPlaca) return alert("Seleccione un vehículo de la tabla.");
-      if (confirm(`¿Dar de baja el vehículo con placa: ${vehiculoSeleccionadoPlaca}?`)) {
+      if (!vehiculoSeleccionadoPlaca) return alert("Seleccione un vehículo.");
+      if (confirm(`¿Dar de baja vehículo: ${vehiculoSeleccionadoPlaca}?`)) {
         await fetch(`${API_URL}/api/vehiculos/${vehiculoSeleccionadoPlaca}`, { method: 'DELETE' });
         vehiculoSeleccionadoPlaca = null;
         await cargarDatosCloud();
@@ -674,7 +696,7 @@
     }
 
     function generarReporteGastosVehiculo() {
-      if (!vehiculoSeleccionadoPlaca) return alert("Seleccione un vehículo de la lista.");
+      if (!vehiculoSeleccionadoPlaca) return alert("Seleccione un vehículo.");
       const periodo = prompt(`Ingrese Año y Mes para ${vehiculoSeleccionadoPlaca} (AAAA-MM):`, "2026-09");
       if (!periodo) return;
 
@@ -694,13 +716,13 @@
     }
 
     function abrirModalVehiculo(placa, modelo) {
-      document.getElementById('modal-vehiculo-titulo').textContent = `🧴 COMPONENTES ASIGNADOS: ${modelo} [${placa}]`;
+      document.getElementById('modal-vehiculo-titulo').textContent = `🧴 CONSUMOS: ${modelo} [${placa}]`;
       const tbody = document.getElementById('modal-vehiculo-body');
       tbody.innerHTML = '';
 
       const filtrados = historial_salidas.filter(h => h.placa_vinculada === placa);
       if (filtrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 font-semibold">Esta unidad no registra salidas ni gastos aún.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 font-semibold">Esta unidad no registra salidas aún.</td></tr>`;
       } else {
         filtrados.forEach(item => {
           const tr = document.createElement('tr');
@@ -721,7 +743,6 @@
       document.getElementById('modal-vehiculo').classList.add('hidden');
     }
 
-    // NUEVO REGISTRO CATÁLOGO
     async function ejecutarNuevo() {
       const sku = document.getElementById('ent-nuevo-cod').value.trim();
       const nombre = document.getElementById('ent-nuevo-nom').value.trim();
@@ -767,13 +788,12 @@
             });
           }
         }
-        alert("Catálogo actualizado exitosamente.");
+        alert("Catálogo actualizado.");
         await cargarDatosCloud();
       };
       reader.readAsArrayBuffer(file);
     }
 
-    // HISTORIAL Y BITÁCORA
     function renderTablaHistorial() {
       const fDesde = document.getElementById('ent-fecha-desde').value;
       const fHasta = document.getElementById('ent-fecha-hasta').value;
@@ -785,11 +805,11 @@
           const tr = document.createElement('tr');
           tr.className = "hover:bg-slate-50";
           tr.innerHTML = `
-            <td class="p-3.5 text-center font-bold">${item.codigo}</td>
-            <td class="p-3.5 text-center text-slate-500 font-medium">${item.fecha}</td>
-            <td class="p-3.5 font-medium">${item.nombre}</td>
-            <td class="p-3.5 text-center font-bold text-amber-700">${item.cantidad}</td>
-            <td class="p-3.5 text-slate-600">${item.destino}</td>
+            <td class="p-3 text-center font-bold">${item.codigo}</td>
+            <td class="p-3 text-center text-slate-500 font-medium">${item.fecha}</td>
+            <td class="p-3 font-medium">${item.nombre}</td>
+            <td class="p-3 text-center font-bold text-amber-700">${item.cantidad}</td>
+            <td class="p-3 text-slate-600">${item.destino}</td>
           `;
           tbody.appendChild(tr);
         }
@@ -807,14 +827,13 @@
         "Destino / Uso": i.destino
       }));
 
-      if (filtrados.length === 0) return alert("No hay movimientos en el rango seleccionado.");
+      if (filtrados.length === 0) return alert("Sin movimientos.");
       const ws = XLSX.utils.json_to_sheet(filtrados);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Salidas");
       XLSX.writeFile(wb, `Reporte_Salidas_${fDesde}_a_${fHasta}.xlsx`);
     }
 
-    // INICIALIZACIÓN
     window.onload = () => {
       cargarDatosCloud();
       cambiarPestana('ver');
