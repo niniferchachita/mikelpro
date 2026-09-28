@@ -1,1 +1,1136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Mikel - Sistema de Gestión de Inventarios</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (XLSX) library for real Excel import/export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        impact: ['Oswald', 'sans-serif'],
+                    },
+                    colors: {
+                        mikelRed: '#d32f2f',
+                        mikelRedDark: '#b71c1c',
+                        mikelGreen: '#2e7d32',
+                        mikelOrange: '#e65100',
+                        mikelBlue: '#0288d1',
+                        mikelPurple: '#6f42c1',
+                        mikelAmber: '#ffa000'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom CustomTkinter look & scrollbar feel */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .row-critical { background-color: #fef2f2 !important; color: #991b1b !important; }
+        .row-critical:hover { background-color: #fee2e2 !important; }
+    </style>
+</head>
+<body class="bg-[#f5f6f8] text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
 
+    <div class="flex flex-1 h-full overflow-hidden">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="w-72 bg-[#e9ecef] border-r border-slate-300 flex flex-col shrink-0">
+            <div class="p-6 border-b border-slate-300 flex items-center space-x-3">
+                <i class="fa-solid fa-gear text-2xl text-slate-800 animate-spin-slow"></i>
+                <h1 class="text-2xl font-impact tracking-wider text-slate-800 uppercase">CONTROL MIKEL</h1>
+            </div>
+
+            <!-- Navigation Items -->
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto" id="mainNav">
+                <button onclick="switchTab('ver')" id="nav-ver" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-bold transition-all bg-mikelRed text-white shadow-sm">
+                    <span class="text-base">📦</span>
+                    <span>STOCK DISPONIBLE</span>
+                </button>
+                <button onclick="switchTab('ingreso')" id="nav-ingreso" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-200 transition-all">
+                    <span class="text-base">📥</span>
+                    <span>REGISTRAR INGRESO</span>
+                </button>
+                <button onclick="switchTab('salida')" id="nav-salida" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-200 transition-all">
+                    <span class="text-base">📤</span>
+                    <span>REGISTRAR SALIDA</span>
+                </button>
+                <button onclick="switchTab('vehiculos')" id="nav-vehiculos" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-200 transition-all">
+                    <span class="text-base">🚘</span>
+                    <span>VEHÍCULOS PROPIOS</span>
+                </button>
+                <button onclick="switchTab('nuevo')" id="nav-nuevo" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-200 transition-all">
+                    <span class="text-base">✨</span>
+                    <span>AÑADIR AL CATÁLOGO</span>
+                </button>
+                <button onclick="switchTab('historial')" id="nav-historial" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-200 transition-all">
+                    <span class="text-base">📋</span>
+                    <span>BITÁCORA Y REPORTES</span>
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-slate-300 text-xs text-slate-500 text-center">
+                Control Mikel v2.0 &bull; Web Edition
+            </div>
+        </aside>
+
+        <!-- MAIN VIEW CONTAINER -->
+        <main class="flex-1 flex flex-col p-6 overflow-hidden bg-[#f5f6f8]">
+            
+            <!-- TAB 1: STOCK DISPONIBLE -->
+            <section id="tab-ver" class="tab-content flex-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col p-6 overflow-hidden">
+                <h2 class="text-2xl font-impact tracking-wide text-slate-900 mb-4 flex items-center gap-2">
+                    <span>📦 COMPONENTES Y MATERIALES EN STOCK</span>
+                </h2>
+
+                <div class="mb-4">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="ent_buscar" onkeyup="renderStockTable()" placeholder="🔍 Filtrar inmediatamente por Código SKU o Nombre de Pieza..." class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelRed focus:outline-none transition">
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="flex-1 overflow-auto border border-slate-200 rounded-lg mb-4">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100 text-slate-800 text-xs font-bold uppercase sticky top-0 border-b border-slate-200 z-10">
+                            <tr>
+                                <th class="p-3 text-center w-36">CÓDIGO SKU</th>
+                                <th class="p-3">DESCRIPCIÓN TÉCNICA</th>
+                                <th class="p-3 text-center w-32">STOCK</th>
+                                <th class="p-3">PROVEEDOR ASIGNADO</th>
+                                <th class="p-3 text-center w-20">SELECCIÓN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla_stock" class="text-sm divide-y divide-slate-200">
+                            <!-- Dynamic Content -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer Action Bar -->
+                <div class="flex flex-col md:flex-row items-center justify-between gap-3 pt-2">
+                    <div class="text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-lg flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
+                        <span>⚠️ FILAS ROJAS CON INDICADOR CRÍTICO: MENOS DE 5 UNIDADES EN EXISTENCIA</span>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <button onclick="eliminarArticuloSeleccionado()" class="flex-1 md:flex-none px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 font-bold rounded-lg text-xs transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>🗑️ ELIMINAR ARTÍCULO</span>
+                        </button>
+                        <button onclick="generarExcelCriticos()" class="flex-1 md:flex-none px-4 py-2 bg-mikelRed hover:bg-mikelRedDark text-white font-bold rounded-lg text-xs shadow-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-excel"></i>
+                            <span>📊 DESCARGAR LISTA DE PEDIDOS (.XLSX)</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: REGISTRAR INGRESO -->
+            <section id="tab-ingreso" class="tab-content flex-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col p-6 overflow-y-auto hidden">
+                <h2 class="text-2xl font-impact tracking-wide text-mikelGreen mb-6 flex items-center gap-2">
+                    <span>📥 ENTRADA Y ABASTECIMIENTO DE MERCANCÍA</span>
+                </h2>
+
+                <div class="max-w-4xl mx-auto w-full space-y-6">
+                    <!-- Batch Requisition Excel -->
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+                        <div>
+                            <h3 class="text-sm font-bold text-mikelGreen uppercase">CARGA DE REQUISICIÓN MASIVA VIA EXCEL</h3>
+                            <p class="text-xs text-slate-600 mt-1">Columnas obligatorias requeridas en el archivo: <code class="bg-white px-1.5 py-0.5 rounded border border-emerald-300 font-mono">codigo</code> y <code class="bg-white px-1.5 py-0.5 rounded border border-emerald-300 font-mono">cantidad</code></p>
+                        </div>
+                        <label class="px-5 py-2.5 bg-mikelGreen hover:bg-emerald-800 text-white font-bold rounded-lg text-xs shadow transition cursor-pointer flex items-center gap-2 shrink-0">
+                            <i class="fa-solid fa-file-import"></i>
+                            <span>📊 SUBIR PLANILLA EXCEL (.XLSX)</span>
+                            <input type="file" id="file_ingreso_masivo" accept=".xlsx, .xls, .csv" class="hidden" onchange="cargaMasivaIngresos(event)">
+                        </label>
+                    </div>
+
+                    <!-- Single Item Entry Card -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-4">
+                        <label class="block text-xs font-bold text-slate-700 uppercase">Escriba código o nombre para cargar un repuesto individual:</label>
+                        <input type="text" id="ent_ingreso_buscar" onkeyup="detectarProductoIngreso()" placeholder="Escriba código SKU o nombre del repuesto..." class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelGreen focus:outline-none">
+
+                        <div id="lbl_ingreso_asoma" class="text-sm font-bold text-amber-700 py-1">
+                            🔍 Esperando detección de material...
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Código SKU Detectado:</label>
+                                <input type="text" id="ent_ingreso_cod" readonly placeholder="Código SKU Detectado" class="w-full px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-500 cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Cantidad Física de Entrada:</label>
+                                <input type="number" min="1" id="ent_ingreso_cant" placeholder="Cantidad Física de Entrada" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelGreen focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center pt-2">
+                        <button onclick="ejecutarIngreso()" class="px-8 py-3 bg-mikelGreen hover:bg-emerald-800 text-white font-bold rounded-lg text-sm shadow-md transition inline-flex items-center gap-2">
+                            <i class="fa-solid fa-circle-down"></i>
+                            <span>📥 ASENTAR MOVIMIENTO DE ENTRADA</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: REGISTRAR SALIDA -->
+            <section id="tab-salida" class="tab-content flex-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col p-6 overflow-y-auto hidden">
+                <h2 class="text-2xl font-impact tracking-wide text-mikelOrange mb-6 flex items-center gap-2">
+                    <span>📤 DESPACHO Y ASIGNACIÓN DE MATERIALES</span>
+                </h2>
+
+                <div class="max-w-4xl mx-auto w-full space-y-6">
+                    <!-- Search Card -->
+                    <div class="bg-orange-50 border border-orange-200 rounded-xl p-5 shadow-sm space-y-2">
+                        <label class="block text-xs font-bold text-orange-900 uppercase">Localizar repuesto a despachar:</label>
+                        <input type="text" id="ent_salida_buscar" onkeyup="detectarProductoSalida()" placeholder="Escriba código SKU o descripción de la pieza..." class="w-full px-4 py-2.5 bg-white border border-orange-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelOrange focus:outline-none">
+                    </div>
+
+                    <div id="lbl_salida_asoma" class="text-sm font-bold text-amber-700 py-1 text-center">
+                        🔍 Esperando orden de salida...
+                    </div>
+
+                    <!-- Dispatch Form Card -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Código SKU:</label>
+                            <input type="text" id="ent_salida_cod" readonly placeholder="Código SKU" class="w-full px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-500 cursor-not-allowed">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Cantidad a Descontar:</label>
+                            <input type="number" min="1" id="ent_salida_cant" placeholder="Cantidad a Descontar" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelOrange focus:outline-none">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Asignar opcionalmente a Placa Flota:</label>
+                            <select id="combo_salida_vehiculo" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelOrange focus:outline-none">
+                                <!-- Dynamically filled -->
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Detalles o descripción del trabajo / Destino libre:</label>
+                            <input type="text" id="ent_salida_destino" placeholder="Detalles o descripción del trabajo / Destino libre..." class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelOrange focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="text-center pt-2">
+                        <button onclick="ejecutarSalida()" class="px-8 py-3 bg-mikelOrange hover:bg-orange-700 text-white font-bold rounded-lg text-sm shadow-md transition inline-flex items-center gap-2">
+                            <i class="fa-solid fa-truck-ramp-box"></i>
+                            <span>📤 AUTORIZAR RETIRO DE ALMACÉN</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: VEHÍCULOS PROPIOS -->
+            <section id="tab-vehiculos" class="tab-content flex-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col p-6 overflow-hidden hidden">
+                <h2 class="text-2xl font-impact tracking-wide text-mikelBlue mb-4 flex items-center gap-2">
+                    <span>🚘 REGISTRO DE FLOTA / VEHÍCULOS INTERNOS</span>
+                </h2>
+
+                <div class="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
+                    <!-- Left Form Panel -->
+                    <div class="w-full md:w-80 bg-slate-50 border border-slate-200 rounded-xl p-5 flex flex-col justify-between shrink-0 overflow-y-auto">
+                        <div class="space-y-4">
+                            <h3 class="text-xs font-bold text-mikelBlue uppercase tracking-wider text-center border-b border-slate-200 pb-2">AÑADIR UNIDAD A LA LISTA</h3>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Número de Placa:</label>
+                                <input type="text" id="ent_veh_placa" placeholder="Ej: GBA-8902" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelBlue uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Marca y Modelo:</label>
+                                <input type="text" id="ent_veh_modelo" placeholder="Ej: Toyota Hilux" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelBlue">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Año del Vehículo:</label>
+                                <input type="text" id="ent_veh_anio" placeholder="Ej: 2020" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelBlue">
+                            </div>
+                            
+                            <button onclick="ejecutarAltaVehiculo()" class="w-full py-2.5 bg-mikelBlue hover:bg-sky-700 text-white font-bold rounded-lg text-xs shadow transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>➕ DAR DE ALTA VEHÍCULO</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-2 pt-4 border-t border-slate-200 mt-4">
+                            <button onclick="generarReporteGastosVehiculo()" class="w-full py-2.5 bg-mikelAmber hover:bg-amber-600 text-slate-900 font-bold rounded-lg text-xs shadow transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-file-invoice"></i>
+                                <span>📊 REPORTE DE GASTOS MENSUAL</span>
+                            </button>
+                            <button onclick="eliminarVehiculo()" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-800 border border-red-300 font-bold rounded-lg text-xs transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span>🗑️ ELIMINAR VEHÍCULO</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right Table Panel -->
+                    <div class="flex-1 flex flex-col overflow-hidden">
+                        <div class="text-xs font-bold text-mikelBlue mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-lightbulb"></i>
+                            <span>💡 CONSEJO INDUSTRIAL: DAR DOBLE CLIC SOBRE CUALQUIER FILA PARA VER SUS COMPONENTES</span>
+                        </div>
+
+                        <div class="flex-1 overflow-auto border border-slate-200 rounded-lg">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-100 text-slate-800 text-xs font-bold uppercase sticky top-0 border-b border-slate-200 z-10">
+                                    <tr>
+                                        <th class="p-3 text-center w-40">PLACA DEL VEHÍCULO</th>
+                                        <th class="p-3">DESCRIPCIÓN / MODELO</th>
+                                        <th class="p-3 text-center w-28">AÑO</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla_vehiculos" class="text-sm divide-y divide-slate-200 cursor-pointer">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: CATÁLOGO NUEVO -->
+            <section id="tab-nuevo" class="tab-content flex-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col p-6 overflow-y-auto hidden">
+                <h2 class="text-2xl font-impact tracking-wide text-mikelPurple mb-6 flex items-center gap-2">
+                    <span>✨ NUEVO REGISTRO EN CATÁLOGO GENERAL</span>
+                </h2>
+
+                <div class="max-w-4xl mx-auto w-full space-y-6">
+                    <!-- Mass Catalog Upload -->
+                    <div class="bg-purple-50 border border-purple-200 rounded-xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+                        <div>
+                            <h3 class="text-sm font-bold text-mikelPurple uppercase">REGISTRO EN MASA (Excel / CSV)</h3>
+                            <p class="text-xs text-slate-600 mt-1">Columnas obligatorias en el archivo: <code class="bg-white px-1.5 py-0.5 rounded border border-purple-300 font-mono">codigo</code>, <code class="bg-white px-1.5 py-0.5 rounded border border-purple-300 font-mono">nombre</code>, <code class="bg-white px-1.5 py-0.5 rounded border border-purple-300 font-mono">cantidad</code> y <code class="bg-white px-1.5 py-0.5 rounded border border-purple-300 font-mono">proveedor</code> (opcional)</p>
+                        </div>
+                        <label class="px-5 py-2.5 bg-mikelPurple hover:bg-purple-900 text-white font-bold rounded-lg text-xs shadow transition cursor-pointer flex items-center gap-2 shrink-0">
+                            <i class="fa-solid fa-file-excel"></i>
+                            <span>📊 SUBIR PLANILLA DE MAESTRO</span>
+                            <input type="file" id="file_catalogo_masivo" accept=".xlsx, .xls, .csv" class="hidden" onchange="cargaMasivaCatalogo(event)">
+                        </label>
+                    </div>
+
+                    <!-- Single Item Form -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-4 max-w-2xl mx-auto">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Código SKU Único de Fábrica:</label>
+                            <input type="text" id="ent_nuevo_cod" placeholder="Código SKU Único de Fábrica" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelPurple focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Descripción Técnica del Repuesto:</label>
+                            <input type="text" id="ent_nuevo_nom" placeholder="Descripción Técnica del Repuesto" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelPurple focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Stock de Apertura:</label>
+                            <input type="number" min="0" id="ent_nuevo_cant" placeholder="Stock de Apertura" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelPurple focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre Comercial del Proveedor:</label>
+                            <input type="text" id="ent_nuevo_prov" placeholder="Nombre Comercial del Proveedor" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-mikelPurple focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="text-center pt-2">
+                        <button onclick="ejecutarNuevo()" class="px-8 py-3 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-lg text-sm shadow-md transition inline-flex items-center gap-2">
+                            <i class="fa-solid fa-square-plus"></i>
+                            <span>REGISTRAR NUEVO COMPONENTE</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 6: BITÁCORA Y REPORTES -->
+            <section id="tab-historial" class="tab-content flex-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col p-6 overflow-hidden hidden">
+                <h2 class="text-2xl font-impact tracking-wide text-mikelOrange mb-4 flex items-center gap-2">
+                    <span>📋 AUDITORÍA Y REGISTRO DE SALIDAS</span>
+                </h2>
+
+                <!-- Filters Toolbar -->
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Desde:</label>
+                            <input type="date" id="ent_fecha_desde" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Hasta:</label>
+                            <input type="date" id="ent_fecha_hasta" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800">
+                        </div>
+                        <button onclick="actualizarHistorial()" class="mt-4 px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-filter"></i>
+                            <span>🔍 FILTRAR</span>
+                        </button>
+                    </div>
+
+                    <button onclick="generarExcelFechas()" class="w-full md:w-auto px-5 py-2.5 bg-mikelAmber hover:bg-amber-600 text-slate-900 font-bold rounded-lg text-xs shadow transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>📥 EXPORTAR REPORTE EXCEL (.XLSX)</span>
+                    </button>
+                </div>
+
+                <!-- History Table -->
+                <div class="flex-1 overflow-auto border border-slate-200 rounded-lg">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100 text-slate-800 text-xs font-bold uppercase sticky top-0 border-b border-slate-200 z-10">
+                            <tr>
+                                <th class="p-3 text-center w-28">CÓDIGO</th>
+                                <th class="p-3 text-center w-32">FECHA</th>
+                                <th class="p-3">PIEZA DESPACHADA</th>
+                                <th class="p-3 text-center w-20">CANT.</th>
+                                <th class="p-3">ASIGNADO A / ORDEN DE TRABAJO</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla_historial" class="text-sm divide-y divide-slate-200">
+                            <!-- Dynamic history -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- VEHICLE CONSUMPTION MODAL POPUP -->
+    <div id="modal_vehiculo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl border border-slate-300 shadow-2xl w-full max-w-3xl p-6 flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200 mb-4">
+                <h3 id="modal_veh_titulo" class="text-xl font-impact tracking-wide text-mikelBlue flex items-center gap-2">
+                    <span>🧴 COMPONENTES ASIGNADOS</span>
+                </h3>
+                <button onclick="cerrarModalVehiculo()" class="text-slate-400 hover:text-slate-600 text-xl px-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-auto border border-slate-200 rounded-lg mb-4">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-100 text-slate-800 text-xs font-bold uppercase sticky top-0 border-b border-slate-200">
+                        <tr>
+                            <th class="p-2.5 text-center w-20">SKU</th>
+                            <th class="p-2.5 text-center w-28">FECHA</th>
+                            <th class="p-2.5">MATERIAL / REPUESTO</th>
+                            <th class="p-2.5 text-center w-16">CANT.</th>
+                            <th class="p-2.5">NOTAS DE TRABAJO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla_modal_vehiculo" class="text-xs divide-y divide-slate-200">
+                        <!-- Dynamic items -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="modal_no_records" class="hidden text-center py-6 text-slate-400 font-bold text-xs">
+                ❌ Esta unidad no registra salidas ni gastos de almacén todavía.
+            </div>
+
+            <div class="text-right">
+                <button onclick="cerrarModalVehiculo()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-lg transition">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI Alert Toast / Notification Modal Substitute -->
+    <div id="ui_toast" class="fixed bottom-6 right-6 bg-slate-800 text-white px-5 py-3.5 rounded-xl shadow-2xl border border-slate-700 flex items-center gap-3 text-sm z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <i id="toast_icon" class="fa-solid fa-circle-info text-sky-400 text-lg"></i>
+        <span id="toast_msg" class="font-medium">Mensaje de notificación</span>
+    </div>
+
+    <script>
+        // LocalStorage Persistence Keys
+        const KEY_INVENTARIO = "inventario_db";
+        const KEY_VEHICULOS = "vehiculos_db";
+        const KEY_HISTORIAL = "historial_salidas_db";
+
+        // Global Application State Data
+        let inventario = {};
+        let vehiculos_db = {};
+        let historial_salidas = [];
+
+        let selectedSkuStock = null;
+        let selectedPlacaVehiculo = null;
+
+        let ingresoCodDetectado = null;
+        let salidaCodDetectado = null;
+
+        // Initialize Data on Load
+        window.onload = function() {
+            cargarDatos();
+            initFechasDefault();
+            renderStockTable();
+            actualizarComboboxVehiculos();
+        };
+
+        function cargarDatos() {
+            // Inventario Default
+            const rawInv = localStorage.getItem(KEY_INVENTARIO);
+            if (rawInv) {
+                inventario = JSON.parse(rawInv);
+            } else {
+                inventario = {
+                    "001": { "nombre": "Filtro de Aceite sintético", "cantidad": 15, "proveedor": "Distribuidora Repuestos Center" },
+                    "002": { "nombre": "Pastillas de freno delanteras", "cantidad": 3, "proveedor": "Frenos Importados S.A." },
+                    "003": { "nombre": "Bujías NGK Iridium", "cantidad": 2, "proveedor": "No registrado" }
+                };
+                guardarDatos("inventario");
+            }
+
+            // Vehiculos Default
+            const rawVeh = localStorage.getItem(KEY_VEHICULOS);
+            if (rawVeh) {
+                vehiculos_db = JSON.parse(rawVeh);
+            } else {
+                vehiculos_db = {
+                    "GBA-8902": { "modelo": "Chevrolet Sail", "anio": "2018" },
+                    "PBA-4502": { "modelo": "Toyota Hilux", "anio": "2020" },
+                    "ABC-1234": { "modelo": "Hino Camión", "anio": "2015" }
+                };
+                guardarDatos("vehiculos");
+            }
+
+            // Historial Default
+            const rawHist = localStorage.getItem(KEY_HISTORIAL);
+            if (rawHist) {
+                historial_salidas = JSON.parse(rawHist);
+            } else {
+                historial_salidas = [];
+                guardarDatos("historial");
+            }
+        }
+
+        function guardarDatos(tipo) {
+            if (tipo === "inventario") localStorage.setItem(KEY_INVENTARIO, JSON.stringify(inventario));
+            if (tipo === "vehiculos") localStorage.setItem(KEY_VEHICULOS, JSON.stringify(vehiculos_db));
+            if (tipo === "historial") localStorage.setItem(KEY_HISTORIAL, JSON.stringify(historial_salidas));
+        }
+
+        function getTodayString() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function initFechasDefault() {
+            const hoy = getTodayString();
+            document.getElementById('ent_fecha_desde').value = hoy;
+            document.getElementById('ent_fecha_hasta').value = hoy;
+        }
+
+        // Custom UI Toast Notification
+        function showNotification(msg, type = "info") {
+            const toast = document.getElementById('ui_toast');
+            const toastMsg = document.getElementById('toast_msg');
+            const toastIcon = document.getElementById('toast_icon');
+
+            toastMsg.innerText = msg;
+            if (type === "error") {
+                toastIcon.className = "fa-solid fa-circle-xmark text-red-400 text-lg";
+            } else if (type === "warning") {
+                toastIcon.className = "fa-solid fa-triangle-exclamation text-amber-400 text-lg";
+            } else if (type === "success") {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-info text-sky-400 text-lg";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 3200);
+        }
+
+        // --- NAVIGATION CONTROLLER ---
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Reset nav buttons styling
+            const navButtons = [
+                { id: 'nav-ver', name: 'ver', activeClass: 'bg-mikelRed text-white' },
+                { id: 'nav-ingreso', name: 'ingreso', activeClass: 'bg-mikelGreen text-white' },
+                { id: 'nav-salida', name: 'salida', activeClass: 'bg-mikelOrange text-white' },
+                { id: 'nav-vehiculos', name: 'vehiculos', activeClass: 'bg-mikelBlue text-white' },
+                { id: 'nav-nuevo', name: 'nuevo', activeClass: 'bg-mikelPurple text-white' },
+                { id: 'nav-historial', name: 'historial', activeClass: 'bg-mikelAmber text-slate-900' }
+            ];
+
+            navButtons.forEach(btn => {
+                const el = document.getElementById(btn.id);
+                el.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-bold transition-all text-slate-700 hover:bg-slate-200";
+                if (btn.name === tabName) {
+                    el.className = `w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-xs font-bold transition-all shadow-sm ${btn.activeClass}`;
+                }
+            });
+
+            // Show selected tab
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            // Trigger tab specific refreshes
+            if (tabName === 'ver') {
+                document.getElementById('ent_buscar').value = '';
+                renderStockTable();
+            } else if (tabName === 'ingreso') {
+                limpiarPantallaIngreso();
+            } else if (tabName === 'salida') {
+                actualizarComboboxVehiculos();
+                limpiarPantallaSalida();
+            } else if (tabName === 'vehiculos') {
+                renderVehiculosTable();
+            } else if (tabName === 'historial') {
+                initFechasDefault();
+                actualizarHistorial();
+            }
+        }
+
+        // Helper Search SKU/Name
+        function buscarProductoEnBD(texto) {
+            texto = texto.trim().toLowerCase();
+            if (!texto) return [null, null];
+            if (inventario[texto]) return [texto, inventario[texto]];
+
+            for (const [cod, datos] of Object.entries(inventario)) {
+                if (datos.nombre.toLowerCase().includes(texto)) {
+                    return [cod, datos];
+                }
+            }
+            return [null, null];
+        }
+
+        function renderStockTable() {
+            const tbody = document.getElementById('tabla_stock');
+            tbody.innerHTML = '';
+            const filtro = document.getElementById('ent_buscar').value.trim().toLowerCase();
+
+            for (const [codigo, datos] of Object.entries(inventario)) {
+                if (codigo.toLowerCase().includes(filtro) || datos.nombre.toLowerCase().includes(filtro)) {
+                    const tr = document.createElement('tr');
+                    const isCritical = datos.cantidad < 5;
+                    
+                    tr.className = `transition ${isCritical ? 'row-critical font-medium' : 'hover:bg-slate-50 text-slate-700'}`;
+
+                    tr.innerHTML = `
+                        <td class="p-3 text-center font-mono font-bold">${codigo}</td>
+                        <td class="p-3 font-semibold">${datos.nombre}</td>
+                        <td class="p-3 text-center font-bold">
+                            ${datos.cantidad} UDS ${isCritical ? '⚠️' : ''}
+                        </td>
+                        <td class="p-3">${datos.proveedor || 'No registrado'}</td>
+                        <td class="p-3 text-center">
+                            <input type="radio" name="sku_select" value="${codigo}" onclick="selectedSkuStock='${codigo}'" class="accent-mikelRed w-4 h-4 cursor-pointer">
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            }
+        }
+
+        function eliminarArticuloSeleccionado() {
+            if (!selectedSkuStock || !inventario[selectedSkuStock]) {
+                showNotification("Por favor, seleccione un artículo de la tabla para eliminarlo.", "warning");
+                return;
+            }
+
+            const sku = selectedSkuStock;
+            const nombre = inventario[sku].nombre;
+
+            if (confirm(`¿Está seguro de que desea eliminar permanentemente el artículo:\n\nSKU: ${sku}\nNombre: ${nombre}?`)) {
+                delete inventario[sku];
+                guardarDatos("inventario");
+                selectedSkuStock = null;
+                showNotification(`El artículo [${sku}] fue removido.`, "success");
+                renderStockTable();
+            }
+        }
+
+        function generarExcelCriticos() {
+            const criticos = [];
+            for (const [k, v] of Object.entries(inventario)) {
+                if (v.cantidad < 5) {
+                    criticos.push({
+                        "SKU": k,
+                        "Descripción": v.nombre,
+                        "Stock Actual": v.cantidad,
+                        "Proveedor": v.proveedor || "No registrado"
+                    });
+                }
+            }
+
+            if (criticos.length === 0) {
+                showNotification("No hay piezas con stock crítico menor a 5 unidades.", "info");
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(criticos);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Stock Critico");
+            XLSX.writeFile(workbook, "Pedidos_Criticos_Mikel.xlsx");
+            showNotification("Archivo Excel generado con éxito.", "success");
+        }
+
+        function detectarProductoIngreso() {
+            const txt = document.getElementById('ent_ingreso_buscar').value;
+            const [cod, datos] = buscarProductoEnBD(txt);
+            const lbl = document.getElementById('lbl_ingreso_asoma');
+            const entCod = document.getElementById('ent_ingreso_cod');
+
+            if (datos) {
+                ingresoCodDetectado = cod;
+                lbl.innerText = `✅ PIEZA ENCONTRADA: ${datos.nombre} [Stock Actual: ${datos.cantidad} UDS]`;
+                lbl.className = "text-sm font-bold text-mikelGreen py-1";
+                entCod.value = cod;
+            } else {
+                ingresoCodDetectado = null;
+                lbl.innerText = "❌ No se registran repuestos vinculados a ese término";
+                lbl.className = "text-sm font-bold text-red-600 py-1";
+                entCod.value = "";
+            }
+        }
+
+        function ejecutarIngreso() {
+            const cantVal = document.getElementById('ent_ingreso_cant').value.trim();
+            if (!ingresoCodDetectado || !cantVal) {
+                showNotification("Seleccione un producto válido y especifique la cantidad.", "warning");
+                return;
+            }
+
+            const cant = parseInt(cantVal, 10);
+            if (isNaN(cant) || cant <= 0) {
+                showNotification("Cantidad inválida.", "error");
+                return;
+            }
+
+            inventario[ingresoCodDetectado].cantidad += cant;
+            guardarDatos("inventario");
+            showNotification("El material fue cargado al almacén con éxito.", "success");
+            limpiarPantallaIngreso();
+        }
+
+        function limpiarPantallaIngreso() {
+            document.getElementById('ent_ingreso_buscar').value = '';
+            document.getElementById('ent_ingreso_cant').value = '';
+            document.getElementById('ent_ingreso_cod').value = '';
+            document.getElementById('lbl_ingreso_asoma').innerText = "🔍 Esperando detección de material...";
+            document.getElementById('lbl_ingreso_asoma').className = "text-sm font-bold text-amber-700 py-1";
+            ingresoCodDetectado = null;
+        }
+
+        function cargaMasivaIngresos(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.SheetNames[0];
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
+
+                    let actualizados = 0;
+                    rows.forEach(fila => {
+                        // Normalize keys
+                        const normFila = {};
+                        Object.keys(fila).forEach(k => normFila[k.trim().toLowerCase()] = fila[k]);
+
+                        if (normFila['codigo'] && normFila['cantidad']) {
+                            const cod = String(normFila['codigo']).trim();
+                            const cant = parseInt(normFila['cantidad'], 10);
+                            if (inventario[cod] && !isNaN(cant)) {
+                                inventario[cod].cantidad += cant;
+                                actualizados++;
+                            }
+                        }
+                    });
+
+                    guardarDatos("inventario");
+                    showNotification(`Se procesaron ${actualizados} actualizaciones con éxito.`, "success");
+                } catch (err) {
+                    showNotification("Error procesando archivo Excel/CSV: " + err.message, "error");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function actualizarComboboxVehiculos() {
+            const combo = document.getElementById('combo_salida_vehiculo');
+            combo.innerHTML = `<option value="Ninguno (Salida General Taller)">Ninguno (Salida General Taller)</option>`;
+            
+            for (const placa of Object.keys(vehiculos_db)) {
+                const opt = document.createElement('option');
+                opt.value = placa;
+                opt.innerText = `${placa} - ${vehiculos_db[placa].modelo}`;
+                combo.appendChild(opt);
+            }
+        }
+
+        function detectarProductoSalida() {
+            const txt = document.getElementById('ent_salida_buscar').value;
+            const [cod, datos] = buscarProductoEnBD(txt);
+            const lbl = document.getElementById('lbl_salida_asoma');
+            const entCod = document.getElementById('ent_salida_cod');
+
+            if (datos) {
+                salidaCodDetectado = cod;
+                lbl.innerText = `✅ CONFIRMADO: ${datos.nombre} [Almacén actual: ${datos.cantidad} UDS]`;
+                lbl.className = "text-sm font-bold text-mikelGreen py-1 text-center";
+                entCod.value = cod;
+            } else {
+                salidaCodDetectado = null;
+                lbl.innerText = "❌ Elemento no localizado";
+                lbl.className = "text-sm font-bold text-red-600 py-1 text-center";
+                entCod.value = "";
+            }
+        }
+
+        function ejecutarSalida() {
+            const cantVal = document.getElementById('ent_salida_cant').value.trim();
+            const destinoTexto = document.getElementById('ent_salida_destino').value.trim();
+            const vehiculoSeleccionado = document.getElementById('combo_salida_vehiculo').value;
+
+            if (!salidaCodDetectado || !cantVal) {
+                showNotification("Seleccione un repuesto válido y defina la cantidad.", "warning");
+                return;
+            }
+
+            const cantInt = parseInt(cantVal, 10);
+            if (isNaN(cantInt) || cantInt <= 0) {
+                showNotification("Formato numérico inválido.", "error");
+                return;
+            }
+
+            const itemStock = inventario[salidaCodDetectado];
+            if (cantInt > itemStock.cantidad) {
+                showNotification("Stock Insuficiente. Unidades disponibles: " + itemStock.cantidad, "warning");
+                return;
+            }
+
+            // Descontar
+            itemStock.cantidad -= cantInt;
+
+            let destinoFinal = "";
+            let placaVinculada = null;
+
+            if (vehiculoSeleccionado === "Ninguno (Salida General Taller)") {
+                destinoFinal = destinoTexto ? destinoTexto : "Salida General Taller";
+            } else {
+                const detalles = destinoTexto ? ` (${destinoTexto})` : "";
+                destinoFinal = `Placa: ${vehiculoSeleccionado}${detalles}`;
+                placaVinculada = vehiculoSeleccionado;
+            }
+
+            historial_salidas.push({
+                fecha: getTodayString(),
+                codigo: salidaCodDetectado,
+                nombre: itemStock.nombre,
+                cantidad: cantInt,
+                destino: destinoFinal,
+                placa_vinculada: placaVinculada
+            });
+
+            guardarDatos("inventario");
+            guardarDatos("historial");
+
+            showNotification("Descuento de almacén realizado correctamente.", "success");
+            limpiarPantallaSalida();
+        }
+
+        function limpiarPantallaSalida() {
+            document.getElementById('ent_salida_buscar').value = '';
+            document.getElementById('ent_salida_cant').value = '';
+            document.getElementById('ent_salida_destino').value = '';
+            document.getElementById('ent_salida_cod').value = '';
+            document.getElementById('lbl_salida_asoma').innerText = "🔍 Esperando orden de salida...";
+            document.getElementById('lbl_salida_asoma').className = "text-sm font-bold text-amber-700 py-1 text-center";
+            salidaCodDetectado = null;
+        }
+
+        function renderVehiculosTable() {
+            const tbody = document.getElementById('tabla_vehiculos');
+            tbody.innerHTML = '';
+
+            for (const [placa, info] of Object.entries(vehiculos_db)) {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-100 transition border-b border-slate-200";
+                tr.onclick = function() {
+                    selectedPlacaVehiculo = placa;
+                    document.querySelectorAll('#tabla_vehiculos tr').forEach(r => r.classList.remove('bg-sky-50'));
+                    tr.classList.add('bg-sky-50');
+                };
+                tr.ondblclick = function() {
+                    abrirPopupMaterialesVehiculo(placa);
+                };
+
+                tr.innerHTML = `
+                    <td class="p-3 text-center font-mono font-bold text-mikelBlue">${placa}</td>
+                    <td class="p-3 font-semibold">${info.modelo}</td>
+                    <td class="p-3 text-center">${info.anio || '---'}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function ejecutarAltaVehiculo() {
+            const placa = document.getElementById('ent_veh_placa').value.trim().toUpperCase();
+            const mod = document.getElementById('ent_veh_modelo').value.trim();
+            const anio = document.getElementById('ent_veh_anio').value.trim();
+
+            if (!placa || !mod) {
+                showNotification("La placa y la descripción del modelo son obligatorios.", "warning");
+                return;
+            }
+
+            if (vehiculos_db[placa]) {
+                showNotification("Este vehículo ya está registrado en la base de datos.", "warning");
+                return;
+            }
+
+            vehiculos_db[placa] = { modelo: mod, anio: anio || "---" };
+            guardarDatos("vehiculos");
+            showNotification(`Vehículo con Placa '${placa}' añadido a la flota.`, "success");
+
+            document.getElementById('ent_veh_placa').value = '';
+            document.getElementById('ent_veh_modelo').value = '';
+            document.getElementById('ent_veh_anio').value = '';
+
+            renderVehiculosTable();
+            actualizarComboboxVehiculos();
+        }
+
+        function eliminarVehiculo() {
+            if (!selectedPlacaVehiculo || !vehiculos_db[selectedPlacaVehiculo]) {
+                showNotification("Seleccione un vehículo de la tabla para eliminarlo.", "warning");
+                return;
+            }
+
+            const placa = selectedPlacaVehiculo;
+            if (confirm(`¿Dar de baja el vehículo con placa ${placa} de la flota propia?`)) {
+                delete vehiculos_db[placa];
+                guardarDatos("vehiculos");
+                selectedPlacaVehiculo = null;
+                renderVehiculosTable();
+                actualizarComboboxVehiculos();
+                showNotification("Vehículo dado de baja.", "success");
+            }
+        }
+
+        function abrirPopupMaterialesVehiculo(placa) {
+            const veh = vehiculos_db[placa];
+            if (!veh) return;
+
+            document.getElementById('modal_veh_titulo').innerText = `🧴 COMPONENTES ASIGNADOS: ${veh.modelo} [${placa}]`;
+            const tbody = document.getElementById('tabla_modal_vehiculo');
+            tbody.innerHTML = '';
+
+            let registros = 0;
+            // Iterate history in reverse
+            for (let i = historial_salidas.length - 1; i >= 0; i--) {
+                const item = historial_salidas[i];
+                if (item.placa_vinculada === placa) {
+                    registros++;
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50";
+                    tr.innerHTML = `
+                        <td class="p-2.5 text-center font-mono font-bold text-slate-700">${item.codigo}</td>
+                        <td class="p-2.5 text-center">${item.fecha}</td>
+                        <td class="p-2.5 font-medium">${item.nombre}</td>
+                        <td class="p-2.5 text-center font-bold">${item.cantidad}</td>
+                        <td class="p-2.5">${item.destino}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            }
+
+            const noRec = document.getElementById('modal_no_records');
+            if (registros === 0) {
+                noRec.classList.remove('hidden');
+            } else {
+                noRec.classList.add('hidden');
+            }
+
+            document.getElementById('modal_vehiculo').classList.remove('hidden');
+        }
+
+        function cerrarModalVehiculo() {
+            document.getElementById('modal_vehiculo').classList.add('hidden');
+        }
+
+        function generarReporteGastosVehiculo() {
+            if (!selectedPlacaVehiculo) {
+                showNotification("Por favor, seleccione de la lista de qué vehículo quiere el informe.", "warning");
+                return;
+            }
+
+            const placa = selectedPlacaVehiculo;
+            const defaultPeriod = getTodayString().substring(0, 7); // YYYY-MM
+            const periodo = prompt(`Ingrese el Año y Mes para ${placa}\nFormato (AAAA-MM):`, defaultPeriod);
+
+            if (!periodo) return;
+
+            const consumos = [];
+            historial_salidas.forEach(item => {
+                if (item.placa_vinculada === placa && item.fecha.startsWith(periodo.trim())) {
+                    consumos.push({
+                        "Fecha de Aplicación": item.fecha,
+                        "Código SKU": item.codigo,
+                        "Descripción del Material": item.nombre,
+                        "Cantidad Utilizada": item.cantidad,
+                        "Detalles de Bitácora": item.destino
+                    });
+                }
+            });
+
+            if (consumos.length === 0) {
+                showNotification(`No se registran consumos para el vehículo [${placa}] en el periodo ${periodo}.`, "info");
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(consumos);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Gastos Vehiculo");
+            XLSX.writeFile(workbook, `Gastos_Mensuales_${placa}_${periodo}.xlsx`);
+            showNotification("Reporte Excel de vehículo descargado.", "success");
+        }
+
+        function ejecutarNuevo() {
+            const cod = document.getElementById('ent_nuevo_cod').value.trim();
+            const nom = document.getElementById('ent_nuevo_nom').value.trim();
+            const cantVal = document.getElementById('ent_nuevo_cant').value.trim();
+            let prov = document.getElementById('ent_nuevo_prov').value.trim();
+
+            if (!cod || !nom || !cantVal) {
+                showNotification("Complete el SKU, descripción y stock inicial.", "warning");
+                return;
+            }
+
+            if (inventario[cod]) {
+                showNotification("El código SKU ya existe en el catálogo general.", "warning");
+                return;
+            }
+
+            const cant = parseInt(cantVal, 10);
+            if (isNaN(cant)) {
+                showNotification("Stock inicial debe ser un número entero.", "error");
+                return;
+            }
+
+            if (!prov) prov = "No registrado";
+
+            inventario[cod] = { nombre: nom, cantidad: cant, proveedor: prov };
+            guardarDatos("inventario");
+
+            showNotification("Nueva pieza incorporada a la base de datos.", "success");
+            document.getElementById('ent_nuevo_cod').value = '';
+            document.getElementById('ent_nuevo_nom').value = '';
+            document.getElementById('ent_nuevo_cant').value = '';
+            document.getElementById('ent_nuevo_prov').value = '';
+        }
+
+        function cargaMasivaCatalogo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.SheetNames[0];
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
+
+                    let creados = 0;
+                    rows.forEach(fila => {
+                        const norm = {};
+                        Object.keys(fila).forEach(k => norm[k.trim().toLowerCase()] = fila[k]);
+
+                        if (norm['codigo'] && norm['nombre'] && norm['cantidad'] !== undefined) {
+                            const cod = String(norm['codigo']).trim();
+                            const nom = String(norm['nombre']).trim();
+                            const cant = parseInt(norm['cantidad'], 10);
+                            const prov = norm['proveedor'] ? String(norm['proveedor']).trim() : "No registrado";
+
+                            if (!inventario[cod] && !isNaN(cant)) {
+                                inventario[cod] = { nombre: nom, cantidad: cant, proveedor: prov };
+                                creados++;
+                            }
+                        }
+                    });
+
+                    guardarDatos("inventario");
+                    showNotification(`Se han anexado ${creados} piezas nuevas al catálogo general.`, "success");
+                } catch (err) {
+                    showNotification("Error importando planilla catálogo: " + err.message, "error");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function actualizarHistorial() {
+            const tbody = document.getElementById('tabla_historial');
+            tbody.innerHTML = '';
+
+            const fDesde = document.getElementById('ent_fecha_desde').value;
+            const fHasta = document.getElementById('ent_fecha_hasta').value;
+
+            for (let i = historial_salidas.length - 1; i >= 0; i--) {
+                const item = historial_salidas[i];
+                if ((!fDesde || item.fecha >= fDesde) && (!fHasta || item.fecha <= fHasta)) {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition";
+                    tr.innerHTML = `
+                        <td class="p-3 text-center font-mono font-bold text-slate-700">${item.codigo}</td>
+                        <td class="p-3 text-center font-medium">${item.fecha}</td>
+                        <td class="p-3 font-semibold">${item.nombre}</td>
+                        <td class="p-3 text-center font-bold text-mikelOrange">${item.cantidad}</td>
+                        <td class="p-3">${item.destino}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            }
+        }
+
+        function generarExcelFechas() {
+            const fDesde = document.getElementById('ent_fecha_desde').value;
+            const fHasta = document.getElementById('ent_fecha_hasta').value;
+
+            const exportables = [];
+            historial_salidas.forEach(item => {
+                if ((!fDesde || item.fecha >= fDesde) && (!fHasta || item.fecha <= fHasta)) {
+                    exportables.push({
+                        "Fecha": item.fecha,
+                        "Código SKU": item.codigo,
+                        "Componente": item.nombre,
+                        "Cantidad Retirada": item.cantidad,
+                        "Destino / Uso": item.destino
+                    });
+                }
+            });
+
+            if (exportables.length === 0) {
+                showNotification("No se detectaron movimientos en el rango de fechas seleccionado.", "info");
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(exportables);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Bitacora Salidas");
+            XLSX.writeFile(workbook, `Reporte_Salidas_${fDesde}_a_${fHasta}.xlsx`);
+            showNotification("Reporte Bitácora exportado correctamente.", "success");
+        }
+    </script>
+</body>
+</html>
